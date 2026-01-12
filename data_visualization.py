@@ -6,9 +6,14 @@ import os
 print(os.getcwd())
 
 df = pd.read_csv('data/train.csv')
-df.dropna(inplace=True)
 print("\nTraining Data Info:")
 print(df.info())
+print(df.isna().sum())
+
+df['Age'] = df['Age'].fillna(df['Age'].median())
+df['Embarked'] = df['Embarked'].fillna('S')
+df.drop(columns=['Cabin'], inplace=True)
+print(f"Original df: {len(df)}")
 
 name_list = df['Name'].tolist()
 unique_names = len(np.unique(df['Name'].tolist()))
@@ -21,7 +26,7 @@ unique_embarked = len(np.unique(df['Embarked'].tolist()))
 print(f"Unique Embarked: {unique_embarked}")
 
 split_value = df['Ticket'].str.split(' ')
-df['TicketNumber'] = split_value.str[-1]
+df['TicketNumber'] = pd.to_numeric(split_value.str[-1], errors='coerce')
 df['TicketPrefix'] = split_value.str[:-1].apply(lambda x: ' '.join(x) if len(x) > 0 else '')
 print("\nTicket Number and Prefix Info:")
 print(df[['Ticket', 'TicketNumber', 'TicketPrefix']].head())
@@ -29,7 +34,7 @@ print(df[['Ticket', 'TicketNumber', 'TicketPrefix']].head())
 
 res = {}
 for i in range(len(df['TicketPrefix'])):
-    print(f"{i}: {df.iloc[i]['TicketPrefix']}")
+    # print(f"{i}: {df.iloc[i]['TicketPrefix']}")
     res[df.iloc[i]['TicketPrefix']] = res.get(df.iloc[i]['TicketPrefix'], 0) + 1
 print(res)
 
@@ -39,6 +44,16 @@ df["Embarked"] = df["Embarked"].map({"C": 0, "Q": 1, "S": 2})
 df['HasPrefix'] = df['TicketPrefix'].apply(lambda x: 0 if x == '' else 1)
 df['TicketLength'] = df['TicketNumber'].astype(str).apply(len)
 df['TicketIsLine'] = df['TicketNumber'].apply(lambda x: 1 if str(x).upper() == 'LINE' else 0)
+
+# Boxplot about fare
+plt.figure()
+plt.boxplot(df['Fare'], vert=True)
+plt.title('Fare distribution')
+plt.ylabel('Fare')
+
+Path('figures').mkdir(exist_ok=True)
+plt.savefig('figures/fare_boxplot.png', bbox_inches='tight')
+plt.close()
 
 df.to_csv('data/train_preprocessed.csv', index=False)
 
